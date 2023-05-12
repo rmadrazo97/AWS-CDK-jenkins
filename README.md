@@ -138,3 +138,47 @@ Stores the script in an AWS SSM Parameter.
 Creates a Security Group that allows inbound traffic on port 8080 (the default Jenkins port).
 Creates an EC2 instance with Amazon Linux 2, running the script from the SSM Parameter at startup. The instance is created in a public subnet, so it gets a public IP, and the Security Group allowing inbound traffic on port 8080 is associated with it.
 With this setup, the Jenkins server should be accessible from the internet via the public IP of the EC2 instance at port 8080. As mentioned before, please remember to secure your Jenkins server properly, as this configuration allows access from anywhere on the internet.
+
+
+To deploy the AWS CDK stack to a specific account, you'll need to configure your AWS credentials. The AWS CLI (Command Line Interface) is the primary tool for managing your AWS services from the command line and it also handles authentication.
+
+If you haven't installed the AWS CLI yet, you can download it from the AWS website.
+
+Once you have the AWS CLI installed, you can configure it by running:
+
+```
+aws configure
+```
+
+It will prompt you for the following information:
+
+- `AWS Access Key ID`: The access key for your AWS account.
+- `AWS Secret Access Key`: The secret access key for your AWS account.
+- `Default region name`: The default region (for example, `us-west-2`).
+- `Default output format`: The output format for the AWS CLI (for example, `json`).
+
+These values are stored in a credentials file at `~/.aws/credentials` on Linux or macOS, or at `C:\Users\USERNAME\.aws\credentials` on Windows.
+
+You can also specify the credentials directly in your environment variables:
+
+```bash
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=your_region
+```
+
+By default, the CDK uses the credentials specified in your AWS CLI configuration or your environment variables. If you have multiple profiles configured, you can specify which one to use by setting the `AWS_PROFILE` environment variable:
+
+```bash
+export AWS_PROFILE=your_profile_name
+```
+
+To deploy the CDK stack to your account, simply run:
+
+```bash
+cdk deploy
+```
+
+This will use the configured AWS credentials to deploy the stack to your account.
+
+Remember, it's best practice not to hardcode any sensitive information (like AWS credentials) directly in your codebase. Always use environment variables or external configuration files to manage sensitive information.
