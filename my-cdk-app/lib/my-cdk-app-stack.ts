@@ -10,14 +10,17 @@ export class MyCdkAppStack extends cdk.Stack {
 
     const userdata = ec2.UserData.forLinux();
     userdata.addCommands(
-      "yum update -y",
-      "yum install -y docker",
-      "service docker start",
+      "sudo yum update -y",
+      "sudo yum install docker -y",
+      "sudo service docker start",
+      "sudo systemctl enable docker.service",
+      "usermod -a -G docker ec2-user",
       "docker run -d -p 8080:8080 -p 50000:50000 jenkins/jenkins"
     );
 
     const instance = new ec2.Instance(this, 'Instance', {
       vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC }, // Ensure public IP is assigned
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
       machineImage: new ec2.AmazonLinuxImage(),
       keyName: "techub-master",  // replace this with your key pair name
@@ -31,7 +34,15 @@ export class MyCdkAppStack extends cdk.Stack {
       stringRepresentation: 'Allow Jenkins'
     });
 
+    const sshPort = new ec2.Port({
+      protocol: ec2.Protocol.TCP,
+      fromPort: 22,
+      toPort: 22,
+      stringRepresentation: 'Allow SSH'
+    });
+
     instance.connections.allowFromAnyIpv4(jenkinsPort, 'Allow Jenkins Port');
+    instance.connections.allowFromAnyIpv4(sshPort, 'Allow SSH');
   }
 }
 
