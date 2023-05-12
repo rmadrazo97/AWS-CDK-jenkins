@@ -81,3 +81,60 @@ cdk deploy
 This will create a CloudFormation stack with the resources defined in the CDK app.
 
 After the deployment completes, you'll have an EC2
+
+
+In the example provided, the EC2 instance is launched in a VPC without a public IP assigned, so the Jenkins application will not be accessible from the internet directly.
+
+If you want the instance to be accessible from the internet, you need to make a few adjustments:
+
+1. Assign a public IP to the instance.
+2. Open the Jenkins port (by default, it's 8080) in the Security Group associated with the instance.
+
+First, when creating the instance, specify that it should have a public IP:
+
+```typescript
+new ec2.Instance(this, 'Instance', {
+  vpc,
+  instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+  machineImage: linuxAmi,
+  userData: ec2.UserData.custom(`sudo aws ssm get-parameter --name ${scriptSsmParameter.parameterName} --with-decryption --region ${this.region} --query Parameter.Value --output text | bash -`),
+  vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+});
+```
+
+Next, create a security group and allow inbound traffic to port 8080:
+
+```typescript
+const securityGroup = new ec2.SecurityGroup(this, 'SecurityGroup', {
+  vpc,
+  description: 'Allow ssh access to ec2 instances',
+  allowAllOutbound: true,
+});
+
+securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8080), 'Allow Jenkins access from anywhere');
+```
+
+And assign this security group to the instance:
+
+```typescript
+new ec2.Instance(this, 'Instance', {
+  vpc,
+  instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO),
+  machineImage: linuxAmi,
+  userData: ec2.UserData.custom(`sudo aws ssm get-parameter --name ${scriptSsmParameter.parameterName} --with-decryption --region ${this.region} --query Parameter.Value --output text | bash -`),
+  vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+  securityGroup: securityGroup,
+});
+```
+
+With these changes, your Jenkins server will be accessible from the internet. However, keep in mind that this also exposes your Jenkins server to potential threats, so make sure to secure it properly. This includes setting up a proper admin password, disabling signups, and potentially even limiting access to certain IP addresses instead of allowing access from anywhere.
+
+After the instance has been created, you can get its public IP from the AWS Management Console, EC2 Dashboard. Using that IP, you can access Jenkins by going to `http://<public-ip>:8080` in your web browser.
+
+The TypeScript file:
+Creates a VPC with 2 availability zones.
+Defines a script to install Jenkins.
+Stores the script in an AWS SSM Parameter.
+Creates a Security Group that allows inbound traffic on port 8080 (the default Jenkins port).
+Creates an EC2 instance with Amazon Linux 2, running the script from the SSM Parameter at startup. The instance is created in a public subnet, so it gets a public IP, and the Security Group allowing inbound traffic on port 8080 is associated with it.
+With this setup, the Jenkins server should be accessible from the internet via the public IP of the EC2 instance at port 8080. As mentioned before, please remember to secure your Jenkins server properly, as this configuration allows access from anywhere on the internet.
