@@ -1,5 +1,3 @@
-Sure, I'll guide you on how to create an AWS CDK project to deploy an EC2 instance with Jenkins installed.
-
 Firstly, make sure you have AWS CDK installed. If not, you can install it using npm:
 
 ```
